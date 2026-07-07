@@ -62,9 +62,10 @@ async def cleanup_tokens(
 # 06-07-2026 - Logout endpoint for all users
 @router_auth.post("/logout-all", tags=["user"])
 async def logout_everywhere(
-    username: str = Depends(get_current_username)
+    username: str = Depends(get_current_username),
+    db: Session = Depends(get_db),
 ):
-    return await logout_all(username)
+    return await logout_all(username, db)
 
 # 06-07-2026 - Logout endpoint for SPA applications
 @router_auth.post("/logout", tags=["user"])

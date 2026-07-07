@@ -58,8 +58,9 @@ async def logout(
 
     return {"message": "Successfully logged out"}
 
-
-async def logout_all(username: str, db: Session = Depends(get_db)):
+# 07-07-2026 - Using the line below to prevent error
+# async def logout_all(username: str, db: Session = Depends(get_db)):
+async def logout_all(username: str, db: Session):
     user = db.query(User).filter(User.username == username).first()
 
     if not user:
