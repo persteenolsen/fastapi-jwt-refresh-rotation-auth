@@ -22,7 +22,7 @@ app = FastAPI(
 
     title="Python + FastApi + PostgreSQL + Alembic + Auth by JWT with Refresh Token Rotation",
     description="07-07-2026 - FastAPI serving Authentication by JWT with Refresh Token Rotation using these credentials: testuser / admin",
-    version="0.0.1",
+    version="0.0.2",
 
     contact={
         "name": "Per Olsen",
@@ -34,10 +34,10 @@ app = FastAPI(
 origins = [
 
     # Not sure if this is needed, but adding just in case
-    "https://fastapi-jwt-refresh-token-auth.vercel.app",
+    "https://fastapi-jwt-refresh-rotation-auth.vercel.app",
 
     # The domain name of the Vue 3 SPA Client
-    "https://vue.fastapi.jwt.refresh.auth.persteenolsen.com",
+    "https://vue.fastapi.jwt.rotation.auth.persteenolsen.com",
      
     # Allow my local Vue SPA
     "http://localhost:3000"
