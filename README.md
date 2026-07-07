@@ -141,7 +141,7 @@ alembic upgrade head
 
 A companion frontend is available:
 
-https://github.com/persteenolsen/vue-fastapi-jwt-refresh-auth-client
+https://github.com/persteenolsen/vue-fastapi-jwt-rotation-auth-client
 
 ### Features:
 
