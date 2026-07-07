@@ -59,6 +59,8 @@ async def logout(
     return {"message": "Successfully logged out"}
 
 # 07-07-2026 - Using the line below to prevent error
+# Note: The db:session must be used here and a general rule is that it 
+# should be used in all functions that are called from routes/user.py
 # async def logout_all(username: str, db: Session = Depends(get_db)):
 async def logout_all(username: str, db: Session):
     user = db.query(User).filter(User.username == username).first()
