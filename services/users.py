@@ -20,22 +20,23 @@ from schemas.user import UserCreate as UserCreateSchema
 
 from pydantic import BaseModel
 
-
-class RefreshRequest(BaseModel):
-    refreshToken: str
-    
 import os
+
+from datetime import datetime, timedelta, timezone
+
+# 07-07-2026 - Outcommented because it is present later in the file
+# class RefreshRequest(BaseModel):
+#    refreshToken: str
+
 
 REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES"))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-from datetime import datetime
-from fastapi import Body
-
-async def logout( refresh_token: str = Body(...), db: Session = Depends(get_db)):
-    from security.auth import hash_refresh_token
-
+async def logout(
+    refresh_token: str = Body(...),
+    db: Session = Depends(get_db)
+):
     token_hash = hash_refresh_token(refresh_token)
 
     db_token = db.query(RefreshToken).filter(
@@ -56,6 +57,7 @@ async def logout( refresh_token: str = Body(...), db: Session = Depends(get_db))
     db.commit()
 
     return {"message": "Successfully logged out"}
+
 
 async def logout_all(username: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
@@ -78,7 +80,6 @@ async def logout_all(username: str, db: Session = Depends(get_db)):
 
     return {"message": "Logged out from all sessions"}
 
-from datetime import datetime, timedelta
 
 async def cleanup_refresh_tokens(db: Session = Depends(get_db)):
     """
@@ -87,17 +88,12 @@ async def cleanup_refresh_tokens(db: Session = Depends(get_db)):
     Removes:
     - revoked tokens older than 7 days
     - expired tokens older than 7 days
-
-    Designed to be replaced later by a scheduler (Celery / cron / APScheduler)
-    without changing authentication logic.
     """
 
     cutoff = datetime.utcnow() - timedelta(days=7)
 
     tokens_to_delete = db.query(RefreshToken).filter(
-        (
-            RefreshToken.revoked_at != None
-        )
+        (RefreshToken.revoked_at != None)
         & (RefreshToken.revoked_at < cutoff)
     ).all()
 
@@ -119,11 +115,20 @@ async def cleanup_refresh_tokens(db: Session = Depends(get_db)):
         "deleted_tokens": deleted_count
     }
 
-def do_register_user(user: UserCreateSchema, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.username == user.username).first()
+
+def do_register_user(
+    user: UserCreateSchema,
+    db: Session = Depends(get_db)
+):
+    db_user = db.query(User).filter(
+        User.username == user.username
+    ).first()
 
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(
+            status_code=400,
+            detail="Username already registered"
+        )
 
     hashed_password = get_password_hash(user.password)
 
@@ -145,43 +150,65 @@ def get_access_token_for_login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.username == form_data.username).first()
+    user = db.query(User).filter(
+        User.username == form_data.username
+    ).first()
 
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(
+        form_data.password,
+        user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(
+        data={"sub": user.username}
+    )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
 
 def get_tokens_for_login_spa(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.username == form_data.username).first()
+    user = db.query(User).filter(
+        User.username == form_data.username
+    ).first()
 
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(
+        form_data.password,
+        user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
 
-    access_token = create_access_token({"sub": user.username})
-    refresh_token = create_refresh_token({"sub": user.username})
+    access_token = create_access_token(
+        {"sub": user.username}
+    )
+
+    refresh_token = create_refresh_token(
+        {"sub": user.username}
+    )
 
     refresh_token_hash = hash_refresh_token(refresh_token)
 
-    payload = decode_token_payload(refresh_token)  # ✅ FIX
+    payload = decode_token_payload(refresh_token)
 
     db_token = RefreshToken(
         user_id=user.id,
-        jti=payload["jti"],  # ✅ FIXED (unique UUID)
+        jti=payload["jti"],
         token_hash=refresh_token_hash,
-        expires_at=datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES),
+        expires_at=datetime.utcnow()
+        + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES),
         revoked_at=None,
         replaced_by_jti=None,
         parent_jti=None
@@ -197,10 +224,10 @@ def get_tokens_for_login_spa(
         "username": user.username
     }
 
-
 # =========================
 # REQUEST MODEL
 # =========================
+# 07-07-2026 - Could be outcommented because it is problerly not used anywhere
 class RefreshRequest(BaseModel):
     refreshToken: str
 
@@ -208,7 +235,6 @@ class RefreshRequest(BaseModel):
 # =========================
 # REFRESH ROTATION ENDPOINT
 # =========================
-
 async def get_tokens_and_type(
     refreshToken: str = Body(...),
     db: Session = Depends(get_db)
@@ -217,7 +243,10 @@ async def get_tokens_and_type(
     payload = decode_token_payload(refreshToken)
 
     if not payload or payload.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid refresh token"
+        )
 
     username = payload["sub"]
 
@@ -230,24 +259,43 @@ async def get_tokens_and_type(
     ).first()
 
     if not db_token or db_token.revoked_at:
-        raise HTTPException(status_code=401, detail="Refresh token revoked or missing")
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token revoked or missing"
+        )
 
-    # 4. Rotate old token
-    db_token.revoked_at = datetime.utcnow()
+    # Database expiration validation
+    if db_token.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token expired"
+        )
 
-    # 5. Create new tokens
-    new_access = create_access_token({"sub": username})
-    new_refresh = create_refresh_token({"sub": username})
+    # 4. Create new tokens
+    new_access = create_access_token(
+        {"sub": username}
+    )
+
+    new_refresh = create_refresh_token(
+        {"sub": username}
+    )
 
     new_payload = decode_token_payload(new_refresh)
 
+    # 5. Rotate old token
+    db_token.revoked_at = datetime.utcnow()
+    db_token.replaced_by_jti = new_payload["jti"]
+
+    # 6. Store new refresh token
     new_db_token = RefreshToken(
         user_id=db_token.user_id,
-        jti=new_payload["jti"],   # ✅ FIXED: real UUID now
+        jti=new_payload["jti"],
         token_hash=hash_refresh_token(new_refresh),
-        expires_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(
+            minutes=REFRESH_TOKEN_EXPIRE_MINUTES
+        ),
         revoked_at=None,
-        replaced_by_jti=db_token.jti,
+        replaced_by_jti=None,
         parent_jti=db_token.jti
     )
 
@@ -266,7 +314,10 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    username = verify_token(token, expected_type="access")
+    username = verify_token(
+        token,
+        expected_type="access"
+    )
 
     if username is None:
         raise HTTPException(
@@ -275,16 +326,26 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.query(User).filter(User.username == username).first()
+    user = db.query(User).filter(
+        User.username == username
+    ).first()
 
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
     return user
 
 
-def get_current_username(token: str = Depends(oauth2_scheme)):
-    username = verify_token(token, expected_type="access")
+def get_current_username(
+    token: str = Depends(oauth2_scheme)
+):
+    username = verify_token(
+        token,
+        expected_type="access"
+    )
 
     if username is None:
         raise HTTPException(
@@ -300,7 +361,10 @@ def get_all_users(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    username = verify_token(token, expected_type="access")
+    username = verify_token(
+        token,
+        expected_type="access"
+    )
 
     if username is None:
         raise HTTPException(
@@ -312,6 +376,9 @@ def get_all_users(
     users = db.query(User).all()
 
     if users is None:
-        raise HTTPException(status_code=404, detail="No Users found")
+        raise HTTPException(
+            status_code=404,
+            detail="No Users found"
+        )
 
     return users

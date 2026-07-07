@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
 # Import the get_current_username and get_current_user functions from services/users.py
@@ -29,21 +29,17 @@ from fastapi import Depends
 
 router_auth = APIRouter()
 
-# 06-07-2026 - Emergency admin endpoint to purge all refresh tokens from the database
+# 07-07-2026 - Admin endpoint to purge all refresh tokens from the database
 @router_auth.post("/admin/purge-refresh-tokens", tags=["admin"])
 def purge_refresh_tokens(
     db: Session = Depends(get_db),
     username: str = Depends(get_current_username)
 ):
-    """
-    06-07-2026 - Emergency admin endpoint.
-
-    Deletes ALL refresh tokens from the database.
-    Used for:
-    - development reset
-    - security incident response
-    - full session invalidation
-    """
+    if username != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required"
+        )
 
     deleted_count = db.query(RefreshToken).delete()
 
@@ -77,7 +73,7 @@ async def logout_user(response = Depends(logout)):
 
 # Public route that returns access token and type if User credentials are valid
 # Note: User Registration Endpoint disabled for Production
-# @router_auth.post("/register", response_model=UserSchema, tags=["user"])
+#@router_auth.post("/register", response_model=UserSchema, tags=["user"])
 def register_user(new_user = Depends(do_register_user)):
     return new_user
 
