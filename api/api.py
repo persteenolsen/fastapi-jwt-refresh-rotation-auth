@@ -21,7 +21,7 @@ from routes.simple import router_simple as router_simple_one
 app = FastAPI(
 
     title="Python + FastApi + PostgreSQL + Alembic + Auth by JWT with Refresh Token Rotation",
-    description="07-07-2026 - FastAPI serving Authentication by JWT with Refresh Token Rotation using these credentials: testuser / admin",
+    description="09-07-2026 - FastAPI serving Authentication by JWT with Refresh Token Rotation using these credentials: testuser / admin",
     version="0.0.2",
 
     contact={
