@@ -4,7 +4,7 @@ A REST API built with FastAPI that demonstrates secure user authentication using
 
 This project was built to learn modern backend architecture, authentication security patterns, database design, and testing practices using Python.
 
-**Last updated:** 09-07-2026
+**Last updated:** 14-07-2026
 
 ---
 
